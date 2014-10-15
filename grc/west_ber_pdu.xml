@@ -1,0 +1,18 @@
+<block>
+  <name>Ber pdu</name>
+  <key>west_ber_pdu</key>
+  <category>WEST</category>
+  <import>import west</import>
+  <make>west.ber_pdu($bitstream)</make>
+  <param>
+    <name>Bitstream</name>
+    <key>bitstream</key>
+    <type>string</type>
+  </param>
+
+  <sink>
+    <name>pdus</name>
+    <type>message</type>
+    <optional>0</optional>
+  </sink>
+</block>

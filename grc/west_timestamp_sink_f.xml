@@ -1,0 +1,25 @@
+<block>
+  <name>Timestamp sink</name>
+  <key>west_timestamp_sink_f</key>
+  <category>WEST</category>
+  <import>import west</import>
+  <make>west.timestamp_sink_f($ts_tag, $filename)</make>
+  <param>
+    <name>Ts_tag</name>
+    <key>ts_tag</key>
+    <type>string</type>
+  </param>
+  <param>
+    <name>Filename</name>
+    <key>filename</key>
+    <type>string</type>
+  </param>
+  <sink>
+    <name>in</name>
+    <type>float</type>
+  </sink>
+  <source>
+    <name>out</name>
+    <type>float</type>
+  </source>
+</block>

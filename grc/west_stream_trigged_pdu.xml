@@ -1,0 +1,26 @@
+<block>
+  <name>Stream trigged pdu</name>
+  <key>west_stream_trigged_pdu</key>
+  <category>WEST</category>
+  <import>import west</import>
+  <make>west.stream_trigged_pdu($tag_name, $length)</make>
+  <param>
+    <name>Tag_name</name>
+    <key>tag_name</key>
+    <type>string</type>
+  </param>
+   <param>
+    <name>Output PDU length</name>
+    <key>length</key>
+    <type>int</type>
+  </param>
+  <sink>
+    <name>in</name>
+    <type>byte</type>
+  </sink>
+  <source>
+    <name>pdus</name>
+    <type>message</type>
+    <optional>1</optional>
+  </source>
+</block>
