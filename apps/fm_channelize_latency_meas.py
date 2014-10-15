@@ -56,13 +56,13 @@ class fm_channelize_latency(gr.top_block):
                   True,
                   True)
         self.pfb_decimator_ccf_0.declare_sample_delay(0)
-        	
+
         self.pfb_arb_resampler_xxx_0 = pfb.arb_resampler_fff(
         	   audio_rate / 50e3,
                   taps=(audio_taps),
         	  flt_size=10)
         self.pfb_arb_resampler_xxx_0.declare_sample_delay(0)
-        	
+
         self.blocks_null_sink_0 = blocks.null_sink(gr.sizeof_float*1)
         self.blocks_file_source_0 = blocks.file_source(gr.sizeof_gr_complex*1, "/home/nathan/Downloads/WFM-97.9MHz-25Msps.fc32", False)
         self.analog_wfm_rcv_0 = analog.wfm_rcv(
@@ -215,8 +215,10 @@ if __name__ == '__main__':
     (options, args) = parser.parse_args()
     if gr.enable_realtime_scheduling() != gr.RT_OK:
         print "Error: failed to enable realtime scheduling."
-    tb = fm_channelize_latency()
-    tb.start(4096)
-    raw_input('Press Enter to quit: ')
-    tb.stop()
-    tb.wait()
+    for max_noutput_items in range(64,4096, 128):
+        tb = fm_channelize_latency()
+        start_time = gr.high_res_timer_now()
+        tb.run(max_noutput_items)
+        stop_time = gr.high_res_timer_now()
+        print "runtime is %i" % (stop_time - start_time)
+        #print "latency is %i" % tb.west_timestamp_sink_f_0.latency_avg()
