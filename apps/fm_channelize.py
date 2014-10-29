@@ -3,30 +3,57 @@
 # Gnuradio Python Flow Graph
 # Title: FM whole-band Channelizer
 # Author: Nathan West
-# Generated: Tue Oct 14 20:11:54 2014
+# Generated: Wed Oct 15 15:22:25 2014
 ##################################################
 
+from PyQt4 import Qt
+from PyQt4.QtCore import QObject, pyqtSlot
 from gnuradio import analog
 from gnuradio import audio
 from gnuradio import blocks
 from gnuradio import eng_notation
 from gnuradio import gr
+from gnuradio import qtgui
 from gnuradio.eng_option import eng_option
 from gnuradio.filter import firdes
 from gnuradio.filter import pfb
 from optparse import OptionParser
-import west
+import PyQt4.Qwt5 as Qwt
+import sip
+import sys
 
-class fm_channelize(gr.top_block):
+from distutils.version import StrictVersion
+class fm_channelize(gr.top_block, Qt.QWidget):
 
     def __init__(self):
         gr.top_block.__init__(self, "FM whole-band Channelizer")
+        Qt.QWidget.__init__(self)
+        self.setWindowTitle("FM whole-band Channelizer")
+        try:
+             self.setWindowIcon(Qt.QIcon.fromTheme('gnuradio-grc'))
+        except:
+             pass
+        self.top_scroll_layout = Qt.QVBoxLayout()
+        self.setLayout(self.top_scroll_layout)
+        self.top_scroll = Qt.QScrollArea()
+        self.top_scroll.setFrameStyle(Qt.QFrame.NoFrame)
+        self.top_scroll_layout.addWidget(self.top_scroll)
+        self.top_scroll.setWidgetResizable(True)
+        self.top_widget = Qt.QWidget()
+        self.top_scroll.setWidget(self.top_widget)
+        self.top_layout = Qt.QVBoxLayout(self.top_widget)
+        self.top_grid_layout = Qt.QGridLayout()
+        self.top_layout.addLayout(self.top_grid_layout)
+
+        self.settings = Qt.QSettings("GNU Radio", "fm_channelize")
+        self.restoreGeometry(self.settings.value("geometry").toByteArray())
+
 
         ##################################################
         # Variables
         ##################################################
         self.samp_rate = samp_rate = 25e6
-        self.gain = gain = 10
+        self.gain = gain = 25
         self.pfb_transition_width = pfb_transition_width = 120e3
         self.pfb_samp_rate = pfb_samp_rate = samp_rate
         self.pfb_gain = pfb_gain = 1
@@ -47,8 +74,87 @@ class fm_channelize(gr.top_block):
         ##################################################
         # Blocks
         ##################################################
-        self.west_timestamp_tagger_ff_0 = west.timestamp_tagger_ff(gr.sizeof_gr_complex, 100)
-        self.west_timestamp_sink_f_0 = west.timestamp_sink_f("timestamp", "fm_latency.csv")
+        self._channel_layout = Qt.QVBoxLayout()
+        self._channel_tool_bar = Qt.QToolBar(self)
+        self._channel_layout.addWidget(self._channel_tool_bar)
+        self._channel_tool_bar.addWidget(Qt.QLabel("fm channel"+": "))
+        class qwt_counter_pyslot(Qwt.QwtCounter):
+            def __init__(self, parent=None):
+                Qwt.QwtCounter.__init__(self, parent)
+            @pyqtSlot('double')
+            def setValue(self, value):
+                super(Qwt.QwtCounter, self).setValue(value)
+        self._channel_counter = qwt_counter_pyslot()
+        self._channel_counter.setRange(0, 125, 1)
+        self._channel_counter.setNumButtons(2)
+        self._channel_counter.setValue(self.channel)
+        self._channel_tool_bar.addWidget(self._channel_counter)
+        self._channel_counter.valueChanged.connect(self.set_channel)
+        self._channel_slider = Qwt.QwtSlider(None, Qt.Qt.Horizontal, Qwt.QwtSlider.BottomScale, Qwt.QwtSlider.BgSlot)
+        self._channel_slider.setRange(0, 125, 1)
+        self._channel_slider.setValue(self.channel)
+        self._channel_slider.setMinimumWidth(125)
+        self._channel_slider.valueChanged.connect(self.set_channel)
+        self._channel_layout.addWidget(self._channel_slider)
+        self.top_layout.addLayout(self._channel_layout)
+        self.qtgui_waterfall_sink_x_1 = qtgui.waterfall_sink_c(
+        	1024, #size
+        	firdes.WIN_BLACKMAN_hARRIS, #wintype
+        	0, #fc
+        	samp_rate / 125, #bw
+        	"", #name
+                1 #number of inputs
+        )
+        self.qtgui_waterfall_sink_x_1.set_update_time(0.10)
+        self.qtgui_waterfall_sink_x_1.enable_grid(False)
+        
+        labels = ["", "", "", "", "",
+                  "", "", "", "", ""]
+        colors = [0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 0]
+        alphas = [1.0, 1.0, 1.0, 1.0, 1.0,
+                  1.0, 1.0, 1.0, 1.0, 1.0]
+        for i in xrange(1):
+            if len(labels[i]) == 0:
+                self.qtgui_waterfall_sink_x_1.set_line_label(i, "Data {0}".format(i))
+            else:
+                self.qtgui_waterfall_sink_x_1.set_line_label(i, labels[i])
+            self.qtgui_waterfall_sink_x_1.set_color_map(i, colors[i])
+            self.qtgui_waterfall_sink_x_1.set_line_alpha(i, alphas[i])
+        
+        self.qtgui_waterfall_sink_x_1.set_intensity_range(-60, 60)
+        
+        self._qtgui_waterfall_sink_x_1_win = sip.wrapinstance(self.qtgui_waterfall_sink_x_1.pyqwidget(), Qt.QWidget)
+        self.top_layout.addWidget(self._qtgui_waterfall_sink_x_1_win)
+        self.qtgui_waterfall_sink_x_0 = qtgui.waterfall_sink_c(
+        	1024, #size
+        	firdes.WIN_BLACKMAN_hARRIS, #wintype
+        	0, #fc
+        	samp_rate, #bw
+        	"", #name
+                1 #number of inputs
+        )
+        self.qtgui_waterfall_sink_x_0.set_update_time(0.10)
+        self.qtgui_waterfall_sink_x_0.enable_grid(False)
+        
+        labels = ["", "", "", "", "",
+                  "", "", "", "", ""]
+        colors = [0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 0]
+        alphas = [1.0, 1.0, 1.0, 1.0, 1.0,
+                  1.0, 1.0, 1.0, 1.0, 1.0]
+        for i in xrange(1):
+            if len(labels[i]) == 0:
+                self.qtgui_waterfall_sink_x_0.set_line_label(i, "Data {0}".format(i))
+            else:
+                self.qtgui_waterfall_sink_x_0.set_line_label(i, labels[i])
+            self.qtgui_waterfall_sink_x_0.set_color_map(i, colors[i])
+            self.qtgui_waterfall_sink_x_0.set_line_alpha(i, alphas[i])
+        
+        self.qtgui_waterfall_sink_x_0.set_intensity_range(10, 80)
+        
+        self._qtgui_waterfall_sink_x_0_win = sip.wrapinstance(self.qtgui_waterfall_sink_x_0.pyqwidget(), Qt.QWidget)
+        self.top_layout.addWidget(self._qtgui_waterfall_sink_x_0_win)
         self.pfb_decimator_ccf_0 = pfb.decimator_ccf(
         	  125,
         	  (pfb_taps),
@@ -64,6 +170,29 @@ class fm_channelize(gr.top_block):
         	  flt_size=10)
         self.pfb_arb_resampler_xxx_0.declare_sample_delay(0)
         	
+        self._gain_layout = Qt.QVBoxLayout()
+        self._gain_tool_bar = Qt.QToolBar(self)
+        self._gain_layout.addWidget(self._gain_tool_bar)
+        self._gain_tool_bar.addWidget(Qt.QLabel("Gain"+": "))
+        class qwt_counter_pyslot(Qwt.QwtCounter):
+            def __init__(self, parent=None):
+                Qwt.QwtCounter.__init__(self, parent)
+            @pyqtSlot('double')
+            def setValue(self, value):
+                super(Qwt.QwtCounter, self).setValue(value)
+        self._gain_counter = qwt_counter_pyslot()
+        self._gain_counter.setRange(0, 100, 1)
+        self._gain_counter.setNumButtons(2)
+        self._gain_counter.setValue(self.gain)
+        self._gain_tool_bar.addWidget(self._gain_counter)
+        self._gain_counter.valueChanged.connect(self.set_gain)
+        self._gain_slider = Qwt.QwtSlider(None, Qt.Qt.Horizontal, Qwt.QwtSlider.BottomScale, Qwt.QwtSlider.BgSlot)
+        self._gain_slider.setRange(0, 100, 1)
+        self._gain_slider.setValue(self.gain)
+        self._gain_slider.setMinimumWidth(200)
+        self._gain_slider.valueChanged.connect(self.set_gain)
+        self._gain_layout.addWidget(self._gain_slider)
+        self.top_layout.addLayout(self._gain_layout)
         self.blocks_null_sink_0 = blocks.null_sink(gr.sizeof_float*1)
         self.blocks_file_source_0 = blocks.file_source(gr.sizeof_gr_complex*1, "/home/nathan/Downloads/WFM-97.9MHz-25Msps.fc32", True)
         self.audio_sink_0 = audio.sink(int(audio_rate), "", True)
@@ -78,14 +207,18 @@ class fm_channelize(gr.top_block):
         ##################################################
         self.connect((self.pfb_decimator_ccf_0, 0), (self.analog_wfm_rcv_0, 0))
         self.connect((self.analog_wfm_rcv_0, 0), (self.pfb_arb_resampler_xxx_0, 0))
+        self.connect((self.blocks_file_source_0, 0), (self.pfb_decimator_ccf_0, 0))
         self.connect((self.pfb_arb_resampler_xxx_0, 0), (self.analog_fm_deemph_0, 0))
+        self.connect((self.pfb_decimator_ccf_0, 0), (self.qtgui_waterfall_sink_x_0, 0))
+        self.connect((self.blocks_file_source_0, 0), (self.qtgui_waterfall_sink_x_1, 0))
         self.connect((self.analog_fm_deemph_0, 0), (self.audio_sink_0, 0))
-        self.connect((self.blocks_file_source_0, 0), (self.west_timestamp_tagger_ff_0, 0))
-        self.connect((self.west_timestamp_tagger_ff_0, 0), (self.pfb_decimator_ccf_0, 0))
-        self.connect((self.analog_fm_deemph_0, 0), (self.west_timestamp_sink_f_0, 0))
-        self.connect((self.west_timestamp_sink_f_0, 0), (self.blocks_null_sink_0, 0))
+        self.connect((self.analog_fm_deemph_0, 0), (self.blocks_null_sink_0, 0))
 
 
+    def closeEvent(self, event):
+        self.settings = Qt.QSettings("GNU Radio", "fm_channelize")
+        self.settings.setValue("geometry", self.saveGeometry())
+        event.accept()
 
     def get_samp_rate(self):
         return self.samp_rate
@@ -93,6 +226,8 @@ class fm_channelize(gr.top_block):
     def set_samp_rate(self, samp_rate):
         self.samp_rate = samp_rate
         self.set_pfb_samp_rate(self.samp_rate)
+        self.qtgui_waterfall_sink_x_1.set_frequency_range(0, self.samp_rate / 125)
+        self.qtgui_waterfall_sink_x_0.set_frequency_range(0, self.samp_rate)
 
     def get_gain(self):
         return self.gain
@@ -100,6 +235,8 @@ class fm_channelize(gr.top_block):
     def set_gain(self, gain):
         self.gain = gain
         self.set_audio_gain(self.gain)
+        Qt.QMetaObject.invokeMethod(self._gain_counter, "setValue", Qt.Q_ARG("double", self.gain))
+        Qt.QMetaObject.invokeMethod(self._gain_slider, "setValue", Qt.Q_ARG("double", self.gain))
 
     def get_pfb_transition_width(self):
         return self.pfb_transition_width
@@ -198,6 +335,8 @@ class fm_channelize(gr.top_block):
 
     def set_channel(self, channel):
         self.channel = channel
+        Qt.QMetaObject.invokeMethod(self._channel_counter, "setValue", Qt.Q_ARG("double", self.channel))
+        Qt.QMetaObject.invokeMethod(self._channel_slider, "setValue", Qt.Q_ARG("double", self.channel))
         self.pfb_decimator_ccf_0.set_channel(int(self.channel))
 
     def get_audio_rate(self):
@@ -214,12 +353,27 @@ class fm_channelize(gr.top_block):
         self.audio_ntaps = audio_ntaps
 
 if __name__ == '__main__':
+    import ctypes
+    import sys
+    if sys.platform.startswith('linux'):
+        try:
+            x11 = ctypes.cdll.LoadLibrary('libX11.so')
+            x11.XInitThreads()
+        except:
+            print "Warning: failed to XInitThreads()"
     parser = OptionParser(option_class=eng_option, usage="%prog: [options]")
     (options, args) = parser.parse_args()
     if gr.enable_realtime_scheduling() != gr.RT_OK:
         print "Error: failed to enable realtime scheduling."
+    if(StrictVersion(Qt.qVersion()) >= StrictVersion("4.5.0")):
+        Qt.QApplication.setGraphicsSystem(gr.prefs().get_string('qtgui','style','raster'))
+    qapp = Qt.QApplication(sys.argv)
     tb = fm_channelize()
     tb.start()
-    raw_input('Press Enter to quit: ')
-    tb.stop()
-    tb.wait()
+    tb.show()
+    def quitting():
+        tb.stop()
+        tb.wait()
+    qapp.connect(qapp, Qt.SIGNAL("aboutToQuit()"), quitting)
+    qapp.exec_()
+    tb = None #to clean up Qt widgets
