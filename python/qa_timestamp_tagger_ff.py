@@ -32,10 +32,11 @@ class qa_stream_trigged_pdu (gr_unittest.TestCase):
         self.tb = None
 
     def test_001_t (self):
-        tx_data = range(256)
+        tx_data = range(256)*1000
         src = blocks.vector_source_f(tx_data, False)
-        but = west.timestamp_tagger_ff(4, 10)
+        but = west.timestamp_tagger_ff(4, 1000)
         sink = blocks.tag_debug(4, "dbg_sink", "timestamp")
+        sink.set_display(True)
         self.tb.connect(src, but, sink)
         self.tb.run ()
 

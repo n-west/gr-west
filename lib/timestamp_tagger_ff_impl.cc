@@ -70,17 +70,21 @@ namespace gr {
         unsigned char *out = (unsigned char *) output_items[0];
 
         std::memcpy(out, in, itemsize * noutput_items);
-        while( total_nitems + fractional_interval < nitems_read(0) + noutput_items) {
-                int offset = (total_nitems + fractional_interval)/itemsize;
-                //printf("emitting tag at %i\n", offset);
-                pmt::pmt_t current_time = pmt::from_uint64(gr::high_res_timer_now());
-                total_nitems = total_nitems + fractional_interval;
-                add_item_tag(0, offset, tag_key, current_time);
-                fractional_interval = interval;
+        static int ii=0;
+        while( (total_nitems + fractional_interval) < (nitems_read(0) + noutput_items)) {
+            int offset = (total_nitems + fractional_interval);
+            pmt::pmt_t current_time = pmt::from_uint64(gr::high_res_timer_now());
+            total_nitems = total_nitems + fractional_interval;
+            add_item_tag(0, offset, tag_key, current_time);
+            fractional_interval = interval;
+            //printf("%i:total_nitems + fractional_interval (%i) < (%i)  nitems_read(0) + noutput_items\n", ii, total_nitems + fractional_interval, nitems_read(0) + noutput_items);
+            ii++;
         }
         // fractional interval keeps track of when the next time tag needs to be added
         // in the case where noutput_items % interval != 0
-        fractional_interval = nitems_read(0) + noutput_items - total_nitems;
+        if(fractional_interval == interval ) {
+            fractional_interval = nitems_read(0) + noutput_items - total_nitems;
+        }
 
         // Tell runtime system how many output items we produced.
         return noutput_items;

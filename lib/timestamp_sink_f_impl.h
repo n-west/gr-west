@@ -30,16 +30,17 @@ namespace gr {
     {
         private:
             pmt::pmt_t tag_key;
-            FILE* out_file;
+            //FILE* out_file;
+            std::ofstream out_file;
             std::vector<gr::tag_t> tags;
-            long long pc_latency_avg;
+            float pc_latency_avg;
             long long nlatency_tags;
 
         public:
             timestamp_sink_f_impl(std::string ts_tag, std::string filename);
             ~timestamp_sink_f_impl();
 
-            long long latency_avg() const { return pc_latency_avg; };
+            long long latency_avg() const {return pc_latency_avg;};
             // Where all the action really happens
             int work(int noutput_items,
 	             gr_vector_const_void_star &input_items,

@@ -23,6 +23,7 @@
 #endif
 
 #include <cstdio>
+#include <fstream>
 #include <string>
 #include <gnuradio/io_signature.h>
 #include <gnuradio/high_res_timer.h>
@@ -47,7 +48,8 @@ namespace gr {
                 gr::io_signature::make(0, 1, sizeof(float)))
     {
         tag_key = pmt::string_to_symbol(ts_tag);
-        out_file = fopen(filename.c_str(), "w");
+        //out_file = fopen(filename.c_str(), "w");
+        out_file.open(filename.c_str(), std::ofstream::out);
         pc_latency_avg = 0;
         nlatency_tags = 0;
     }
@@ -57,8 +59,9 @@ namespace gr {
      */
     timestamp_sink_f_impl::~timestamp_sink_f_impl()
     {
-        fflush(out_file);
-        fclose(out_file);
+        //fflush(out_file);
+        //fclose(out_file);
+        out_file.close();
     }
 
     int
@@ -74,11 +77,12 @@ namespace gr {
             gr::high_res_timer_type current_time = gr::high_res_timer_now();
             unsigned int tagged_time = pmt::to_uint64(tags[ii].value);
             unsigned int latency = current_time - tagged_time;
-            pc_latency_avg += (latency - pc_latency_avg)/(nlatency_tags+1);
+            pc_latency_avg += ((float)latency - pc_latency_avg)/(float)(nlatency_tags+1);
             nlatency_tags += 1;
-            //fprintf(out_file, "%u,%lli\n", latency, pc_latency_avg);
+            out_file << latency << "," << pc_latency_avg << std::endl;
 
-            //printf("%u,%lli\n", latency, latency_avg);
+            //printf("tagged at %u; read at %u; latency %u; avg %lli\n",
+            //        tagged_time, current_time, latency, pc_latency_avg);
         }
 
         // Tell runtime system how many output items we produced.
