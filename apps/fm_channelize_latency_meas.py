@@ -3,7 +3,7 @@
 # Gnuradio Python Flow Graph
 # Title: FM whole-band Channelizer to Measure Latency vs TP
 # Author: Nathan West
-# Generated: Tue Oct 14 23:59:17 2014
+# Generated: Wed Oct 29 20:19:42 2014
 ##################################################
 
 from gnuradio import analog
@@ -14,6 +14,7 @@ from gnuradio.eng_option import eng_option
 from gnuradio.filter import firdes
 from gnuradio.filter import pfb
 from optparse import OptionParser
+import time
 import west
 
 class fm_channelize_latency(gr.top_block):
@@ -24,7 +25,7 @@ class fm_channelize_latency(gr.top_block):
         ##################################################
         # Variables
         ##################################################
-        self.samp_rate = samp_rate = 25e6
+        self.samp_rate = samp_rate = 3.125e6
         self.gain = gain = 10
         self.pfb_transition_width = pfb_transition_width = 120e3
         self.pfb_samp_rate = pfb_samp_rate = samp_rate
@@ -39,7 +40,7 @@ class fm_channelize_latency(gr.top_block):
         self.pfb_taps = pfb_taps = firdes.low_pass_2(pfb_gain, pfb_samp_rate, pfb_cutoff_freq, pfb_transition_width, pfb_attenuation)
         self.audio_taps = audio_taps = firdes.low_pass_2(audio_gain, audio_samp_rate, audio_cutoff_freq, audio_transition_width, audio_attenuation)
         self.pfb_ntaps = pfb_ntaps = pfb_taps.__len__()
-        self.channel = channel = 43
+        self.channel = channel = 0
         self.audio_rate = audio_rate = 44.1e3
         self.audio_ntaps = audio_ntaps = audio_taps.__len__()
 
@@ -47,24 +48,15 @@ class fm_channelize_latency(gr.top_block):
         # Blocks
         ##################################################
         self.west_timestamp_tagger_ff_0 = west.timestamp_tagger_ff(gr.sizeof_gr_complex, 100)
-        self.west_timestamp_sink_f_0 = west.timestamp_sink_f("timestamp", "fm_latency.csv")
-        self.pfb_decimator_ccf_0 = pfb.decimator_ccf(
-        	  125,
-        	  (pfb_taps),
-        	  channel,
-        	  100,
-                  True,
-                  True)
-        self.pfb_decimator_ccf_0.declare_sample_delay(0)
-
+        self.west_timestamp_sink_f_0 = west.timestamp_sink_f("timestamp", "fm_latency_meas")
         self.pfb_arb_resampler_xxx_0 = pfb.arb_resampler_fff(
         	   audio_rate / 50e3,
                   taps=(audio_taps),
         	  flt_size=10)
         self.pfb_arb_resampler_xxx_0.declare_sample_delay(0)
-
+        	
         self.blocks_null_sink_0 = blocks.null_sink(gr.sizeof_float*1)
-        self.blocks_file_source_0 = blocks.file_source(gr.sizeof_gr_complex*1, "/home/nathan/Downloads/WFM-97.9MHz-25Msps.fc32", False)
+        self.blocks_file_source_0 = blocks.file_source(gr.sizeof_gr_complex*1, "/home/nathan/Downloads/WFM-97.9MHz-3.125Msps.dat", False)
         self.analog_wfm_rcv_0 = analog.wfm_rcv(
         	quad_rate=200e3,
         	audio_decimation=int(200e3 / audio_rate),
@@ -74,13 +66,12 @@ class fm_channelize_latency(gr.top_block):
         ##################################################
         # Connections
         ##################################################
-        self.connect((self.pfb_decimator_ccf_0, 0), (self.analog_wfm_rcv_0, 0))
         self.connect((self.analog_wfm_rcv_0, 0), (self.pfb_arb_resampler_xxx_0, 0))
         self.connect((self.pfb_arb_resampler_xxx_0, 0), (self.analog_fm_deemph_0, 0))
-        self.connect((self.blocks_file_source_0, 0), (self.west_timestamp_tagger_ff_0, 0))
-        self.connect((self.west_timestamp_tagger_ff_0, 0), (self.pfb_decimator_ccf_0, 0))
         self.connect((self.analog_fm_deemph_0, 0), (self.west_timestamp_sink_f_0, 0))
         self.connect((self.west_timestamp_sink_f_0, 0), (self.blocks_null_sink_0, 0))
+        self.connect((self.west_timestamp_tagger_ff_0, 0), (self.analog_wfm_rcv_0, 0))
+        self.connect((self.blocks_file_source_0, 0), (self.west_timestamp_tagger_ff_0, 0))
 
 
 
@@ -174,7 +165,6 @@ class fm_channelize_latency(gr.top_block):
     def set_pfb_taps(self, pfb_taps):
         self.pfb_taps = pfb_taps
         self.set_pfb_ntaps(self.pfb_taps.__len__())
-        self.pfb_decimator_ccf_0.set_taps((self.pfb_taps))
 
     def get_audio_taps(self):
         return self.audio_taps
@@ -195,7 +185,6 @@ class fm_channelize_latency(gr.top_block):
 
     def set_channel(self, channel):
         self.channel = channel
-        self.pfb_decimator_ccf_0.set_channel(int(self.channel))
 
     def get_audio_rate(self):
         return self.audio_rate
@@ -215,10 +204,15 @@ if __name__ == '__main__':
     (options, args) = parser.parse_args()
     if gr.enable_realtime_scheduling() != gr.RT_OK:
         print "Error: failed to enable realtime scheduling."
+
     for max_noutput_items in range(64,4096, 128):
         tb = fm_channelize_latency()
         start_time = gr.high_res_timer_now()
-        tb.run(max_noutput_items)
+        tb.start(max_noutput_items)
+        time.sleep(5)
         stop_time = gr.high_res_timer_now()
-        print "runtime is %i" % (stop_time - start_time)
-        #print "latency is %i" % tb.west_timestamp_sink_f_0.latency_avg()
+        throughput = tb.west_timestamp_sink_f_0.pc_throughput_avg()
+        tb.stop()
+        print "throughput is %i" % (throughput)
+
+
